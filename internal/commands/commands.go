@@ -287,8 +287,38 @@ func (r *Registry) history(args []string) Response {
 }
 
 func (r *Registry) uptime(args []string) Response {
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return Response{Output: "uptime: unavailable", Type: "error"}
+	}
+
+	// /proc/uptime: "12345.67 98765.43" (uptime_seconds idle_seconds)
+	parts := strings.Fields(string(data))
+	if len(parts) == 0 {
+		return Response{Output: "uptime: unavailable", Type: "error"}
+	}
+
+	var seconds float64
+	fmt.Sscanf(parts[0], "%f", &seconds)
+
+	days := int(seconds) / 86400
+	hours := (int(seconds) % 86400) / 3600
+	minutes := (int(seconds) % 3600) / 60
+
+	if days > 0 {
+		return Response{
+			Output: fmt.Sprintf("up %d days, %d hours, %d minutes", days, hours, minutes),
+			Type:   "text",
+		}
+	}
+	if hours > 0 {
+		return Response{
+			Output: fmt.Sprintf("up %d hours, %d minutes", hours, minutes),
+			Type:   "text",
+		}
+	}
 	return Response{
-		Output: "(server uptime unavailable in container)",
+		Output: fmt.Sprintf("up %d minutes", minutes),
 		Type:   "text",
 	}
 }
