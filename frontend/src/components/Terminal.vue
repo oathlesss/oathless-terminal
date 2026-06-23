@@ -118,6 +118,18 @@ async function submitCommand(cmd) {
     return
   }
 
+  // Handle history locally
+  if (trimmed === 'history') {
+    if (history.value.length === 0) {
+      lines.value.push({ type: 'output', text: '(no commands yet)' })
+    } else {
+      const output = history.value.map((h, i) => `  ${i + 1}  ${h}`).join('\n')
+      lines.value.push({ type: 'output', text: output })
+    }
+    inputValue.value = ''
+    return
+  }
+
   loading.value = true
   scrollToBottom()
 
