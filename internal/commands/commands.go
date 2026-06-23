@@ -294,9 +294,8 @@ func (r *Registry) uptime(args []string) Response {
 }
 
 func (r *Registry) hostname(args []string) Response {
-	hostname, _ := os.Hostname()
 	return Response{
-		Output: hostname,
+		Output: "oathless.dev",
 		Type:   "text",
 	}
 }
