@@ -146,6 +146,9 @@ async function submitCommand(cmd) {
     loading.value = false
     inputValue.value = ''
     scrollToBottom()
+    // Re-focus after the v-if re-mounts the input
+    await nextTick()
+    focusInput()
   }
 }
 
