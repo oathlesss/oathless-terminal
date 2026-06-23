@@ -131,13 +131,8 @@ func (r *Registry) projects(args []string) Response {
 	return Response{
 		Output: `projects:
 ──────────────────────
-  project arachne     godot 4 platformer — spider/web mechanics
-  thaumcraft mod      neoforge 1.21.1 minecraft mod
-  homelab             docker homeserver — 15+ services
-  oathless.dev        this terminal website (go + vue)
-  minecraft servers   vanilla + atm10 modded
-──────────────────────
-type 'cat <project>' for details.`,
+  coming soon.
+──────────────────────`,
 		Type: "text",
 	}
 }
