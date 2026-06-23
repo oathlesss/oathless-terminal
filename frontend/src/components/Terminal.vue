@@ -51,7 +51,7 @@
 
     <!-- Input line -->
     <div v-if="!loading" class="flex items-start">
-      <span class="flex-shrink-0" style="color: var(--rp-iris)">❯ </span>
+      <span class="flex-shrink-0 mr-1" style="color: var(--rp-iris)">❯</span>
       <span class="flex-1 relative">
         <span>{{ inputLeft }}</span><span class="cursor-blink" style="color: var(--rp-iris)">█</span>
         <!-- Hidden input for capturing keystrokes -->
