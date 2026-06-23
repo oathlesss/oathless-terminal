@@ -52,21 +52,18 @@
     <!-- Input line -->
     <div v-if="!loading" class="flex items-start">
       <span class="flex-shrink-0" style="color: var(--rp-iris)">❯&nbsp;</span>
-      <span class="flex-1 relative">
-        <span>{{ inputLeft }}</span><span class="cursor-blink" style="color: var(--rp-iris)">█</span>
-        <!-- Hidden input for capturing keystrokes -->
+      <div class="flex-1 relative">
         <input
           ref="hiddenInput"
           v-model="inputValue"
-          class="absolute inset-0 opacity-0 cursor-text"
-          style="caret-color: transparent"
+          class="w-full bg-transparent border-none outline-none font-mono text-sm leading-relaxed"
+          :style="{ color: 'var(--rp-text)', caretColor: 'var(--rp-iris)' }"
           spellcheck="false"
           autocomplete="off"
           autocapitalize="off"
           @keydown="handleKeydown"
-          @keyup="handleKeyup"
         />
-      </span>
+      </div>
     </div>
 
     <!-- Bottom spacer for scroll -->
@@ -75,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 
 const hiddenInput = ref(null)
 const bottomRef = ref(null)
@@ -86,9 +83,6 @@ const initialBannerShown = ref(false)
 const history = ref([])
 const historyIndex = ref(-1)
 const tempInput = ref('')
-
-// Show input starting from the end so cursor sits at end
-const inputLeft = computed(() => inputValue.value)
 
 function focusInput() {
   hiddenInput.value?.focus()
@@ -214,10 +208,6 @@ function handleKeydown(e) {
     lines.value = []
     return
   }
-}
-
-function handleKeyup() {
-  scrollToBottom()
 }
 
 // Theme palettes
