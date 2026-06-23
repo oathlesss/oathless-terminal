@@ -133,8 +133,9 @@ async function submitCommand(cmd) {
     if (data.type === 'clear') {
       lines.value = []
     } else if (data.type && data.type.startsWith('theme:')) {
+      const theme = data.type.split(':')[1]
+      applyTheme(theme)
       lines.value.push({ type: 'output', text: data.output })
-      // Theme change is handled by CSS variable swaps
     } else if (data.type === 'error') {
       lines.value.push({ type: 'error', text: data.output })
     } else {
@@ -193,6 +194,49 @@ function handleKeydown(e) {
 
 function handleKeyup() {
   scrollToBottom()
+}
+
+// Theme palettes
+const themes = {
+  'rose-pine': {
+    base: '#191724', surface: '#1f1d2e', overlay: '#26233a',
+    muted: '#6e6a86', subtle: '#908caa', text: '#e0def4',
+    love: '#eb6f92', gold: '#f6c177', rose: '#ebbcba',
+    pine: '#31748f', foam: '#9ccfd8', iris: '#c4a7e7'
+  },
+  green: {
+    base: '#0d1117', surface: '#161b22', overlay: '#21262d',
+    muted: '#484f58', subtle: '#8b949e', text: '#c9d1d9',
+    love: '#ff7b72', gold: '#d2991d', rose: '#79c0ff',
+    pine: '#3fb950', foam: '#56d364', iris: '#3fb950'
+  },
+  amber: {
+    base: '#1a1100', surface: '#241a00', overlay: '#2d2200',
+    muted: '#665000', subtle: '#997a00', text: '#ffd866',
+    love: '#ff6600', gold: '#ffaa00', rose: '#ffcc33',
+    pine: '#ff8800', foam: '#ffbb33', iris: '#ff9900'
+  },
+  matrix: {
+    base: '#0d0d0d', surface: '#1a1a1a', overlay: '#262626',
+    muted: '#0a3d0a', subtle: '#0f5c0f', text: '#00ff41',
+    love: '#ff0040', gold: '#ccff00', rose: '#00cc33',
+    pine: '#009933', foam: '#33ff66', iris: '#00ff41'
+  }
+}
+
+function applyTheme(name) {
+  const t = themes[name] || themes['rose-pine']
+  const root = document.documentElement
+  for (const [key, value] of Object.entries(t)) {
+    root.style.setProperty(`--rp-${key}`, value)
+  }
+  localStorage.setItem('theme', name)
+}
+
+// Load saved theme on mount
+const savedTheme = localStorage.getItem('theme')
+if (savedTheme && themes[savedTheme]) {
+  applyTheme(savedTheme)
 }
 
 onMounted(() => {
