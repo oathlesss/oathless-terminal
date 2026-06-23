@@ -1,0 +1,14 @@
+# Build artifacts
+oathless-terminal
+frontend/node_modules/
+frontend/dist/
+
+# Go
+*.exe
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
