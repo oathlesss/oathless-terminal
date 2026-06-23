@@ -130,6 +130,18 @@ async function submitCommand(cmd) {
     return
   }
 
+  // Handle history | grep locally (history lives in browser)
+  if (trimmed.startsWith('history | grep ')) {
+    const pattern = trimmed.slice('history | grep '.length).trim().toLowerCase()
+    const output = history.value
+      .map((h, i) => `  ${i + 1}  ${h}`)
+      .filter(line => line.toLowerCase().includes(pattern))
+      .join('\n')
+    lines.value.push({ type: 'output', text: output || '(no matches)' })
+    inputValue.value = ''
+    return
+  }
+
   loading.value = true
   scrollToBottom()
 

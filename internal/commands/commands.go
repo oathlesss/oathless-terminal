@@ -39,6 +39,16 @@ func (r *Registry) Execute(name string, args []string) Response {
 }
 
 // Available returns a sorted list of command names.
+// ExecuteWithInput runs a command with stdin-like input (for pipes).
+func (r *Registry) ExecuteWithInput(name string, args []string, input string) Response {
+	switch name {
+	case "grep":
+		return r.grepWithInput(args, input)
+	default:
+		return r.Execute(name, args)
+	}
+}
+
 func (r *Registry) Available() []string {
 	names := make([]string, 0, len(r.commands))
 	for k := range r.commands {
@@ -68,6 +78,7 @@ func (r *Registry) registerBuiltins() {
 	r.register("cat", r.cat)
 	r.register("history", r.history)
 	r.register("uptime", r.uptime)
+	r.register("grep", r.grep)
 	r.register("hostname", r.hostname)
 }
 
@@ -82,6 +93,7 @@ func (r *Registry) help(args []string) Response {
   contact     how to reach me
   date        current date and time
   echo        echo text back
+  grep        filter output by pattern
   help        show this help
   history     show command history
   hostname    show server hostname
@@ -93,6 +105,7 @@ func (r *Registry) help(args []string) Response {
   uptime      server uptime
   whoami      who am i
 ──────────────────────
+piping: command | grep pattern
 type any command to get started.`,
 		Type: "text",
 	}
@@ -328,4 +341,33 @@ func (r *Registry) hostname(args []string) Response {
 		Output: "oathless.dev",
 		Type:   "text",
 	}
+}
+
+func (r *Registry) grep(args []string) Response {
+	return Response{
+		Output: "usage: grep <pattern>\npipe output through grep: command | grep pattern",
+		Type:   "error",
+	}
+}
+
+func (r *Registry) grepWithInput(args []string, input string) Response {
+	if len(args) == 0 {
+		return Response{Output: "usage: grep <pattern>", Type: "error"}
+	}
+
+	pattern := strings.ToLower(args[0])
+	lines := strings.Split(input, "\n")
+	var matched []string
+
+	for _, line := range lines {
+		if strings.Contains(strings.ToLower(line), pattern) {
+			matched = append(matched, line)
+		}
+	}
+
+	if len(matched) == 0 {
+		return Response{Output: "(no matches)", Type: "text"}
+	}
+
+	return Response{Output: strings.Join(matched, "\n"), Type: "text"}
 }
