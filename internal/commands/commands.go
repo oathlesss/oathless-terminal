@@ -182,9 +182,8 @@ func (r *Registry) echo(args []string) Response {
 }
 
 func (r *Registry) neofetch(args []string) Response {
-	hostname, _ := os.Hostname()
 	return Response{
-		Output: fmt.Sprintf(`         .o0K0o.         oathless@%s
+		Output: fmt.Sprintf(`         .o0K0o.         oathless@oathless.dev
         '0KWXKKK0;        ────────────────────
        .KN..xWXKKd        os      %s
        lX'  kMNxX:        kernel  %s
@@ -207,7 +206,7 @@ KMMMMMMMNkdl;.
 WMMMMW0c.
 MMMM0'
 0Mx
-l.`, hostname, runtime.GOOS, runtime.Version(), "bash", "unknown"),
+l.`, runtime.GOOS, runtime.Version(), "bash", formatUptime()),
 		Type: "text",
 	}
 }
@@ -300,38 +299,8 @@ func (r *Registry) history(args []string) Response {
 }
 
 func (r *Registry) uptime(args []string) Response {
-	data, err := os.ReadFile("/proc/uptime")
-	if err != nil {
-		return Response{Output: "uptime: unavailable", Type: "error"}
-	}
-
-	// /proc/uptime: "12345.67 98765.43" (uptime_seconds idle_seconds)
-	parts := strings.Fields(string(data))
-	if len(parts) == 0 {
-		return Response{Output: "uptime: unavailable", Type: "error"}
-	}
-
-	var seconds float64
-	fmt.Sscanf(parts[0], "%f", &seconds)
-
-	days := int(seconds) / 86400
-	hours := (int(seconds) % 86400) / 3600
-	minutes := (int(seconds) % 3600) / 60
-
-	if days > 0 {
-		return Response{
-			Output: fmt.Sprintf("up %d days, %d hours, %d minutes", days, hours, minutes),
-			Type:   "text",
-		}
-	}
-	if hours > 0 {
-		return Response{
-			Output: fmt.Sprintf("up %d hours, %d minutes", hours, minutes),
-			Type:   "text",
-		}
-	}
 	return Response{
-		Output: fmt.Sprintf("up %d minutes", minutes),
+		Output: "up " + formatUptime(),
 		Type:   "text",
 	}
 }
@@ -348,6 +317,31 @@ func (r *Registry) grep(args []string) Response {
 		Output: "usage: grep <pattern>\npipe output through grep: command | grep pattern",
 		Type:   "error",
 	}
+}
+
+func formatUptime() string {
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return "unavailable"
+	}
+	parts := strings.Fields(string(data))
+	if len(parts) == 0 {
+		return "unavailable"
+	}
+	var seconds float64
+	fmt.Sscanf(parts[0], "%f", &seconds)
+
+	days := int(seconds) / 86400
+	hours := (int(seconds) % 86400) / 3600
+	minutes := (int(seconds) % 3600) / 60
+
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm", days, hours, minutes)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%dh %dm", hours, minutes)
+	}
+	return fmt.Sprintf("%dm", minutes)
 }
 
 func (r *Registry) grepWithInput(args []string, input string) Response {
