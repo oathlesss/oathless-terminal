@@ -31,6 +31,11 @@ type CommandResponse struct {
 	Type   string `json:"type"`
 }
 
+// HandleCommands returns the list of available commands.
+func (a *API) HandleCommands(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, a.registry.Available())
+}
+
 // HandleCommand processes a command execution request with pipe support.
 func (a *API) HandleCommand(w http.ResponseWriter, r *http.Request) {
 	var req CommandRequest
@@ -100,8 +105,8 @@ func (a *API) executePipeline(raw string) commands.Response {
 			result = a.registry.ExecuteWithInput(cmd, args, input)
 		}
 
-		// Special types (clear, theme) propagate immediately
-		if result.Type == "clear" || strings.HasPrefix(result.Type, "theme:") {
+		// Special types (clear, theme, matrix) propagate immediately
+		if result.Type == "clear" || result.Type == "matrix" || strings.HasPrefix(result.Type, "theme:") {
 			return result
 		}
 

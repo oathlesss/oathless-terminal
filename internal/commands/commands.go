@@ -80,6 +80,7 @@ func (r *Registry) registerBuiltins() {
 	r.register("uptime", r.uptime)
 	r.register("grep", r.grep)
 	r.register("hostname", r.hostname)
+	r.register("matrix", r.matrix)
 }
 
 func (r *Registry) help(args []string) Response {
@@ -98,6 +99,7 @@ func (r *Registry) help(args []string) Response {
   history     show command history
   hostname    show server hostname
   ls          list available pages
+  matrix      follow the white rabbit...
   neofetch    system information (parody)
   projects    projects i've worked on
   social      social links
@@ -316,6 +318,13 @@ func (r *Registry) grep(args []string) Response {
 	return Response{
 		Output: "usage: grep <pattern>\npipe output through grep: command | grep pattern",
 		Type:   "error",
+	}
+}
+
+func (r *Registry) matrix(args []string) Response {
+	return Response{
+		Output: "follow the white rabbit...",
+		Type:   "matrix",
 	}
 }
 

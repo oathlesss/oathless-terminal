@@ -18,6 +18,7 @@ func main() {
 
 	// API
 	api := handler.NewAPI()
+	mux.HandleFunc("GET /api/commands", api.HandleCommands)
 	mux.HandleFunc("POST /api/command", api.HandleCommand)
 
 	// SPA fallback (serves embedded Vue dist + index.html for all other routes)

@@ -1,9 +1,16 @@
 <template>
   <div
-    class="terminal h-full w-full overflow-y-auto p-4 md:p-6 cursor-text font-mono text-sm leading-relaxed"
+    class="terminal h-full w-full overflow-y-auto p-4 md:p-6 cursor-text font-mono text-sm leading-relaxed relative"
     :style="{ background: 'var(--rp-base)', color: 'var(--rp-text)' }"
     @click="focusInput"
   >
+    <!-- Matrix rain canvas overlay -->
+    <canvas
+      v-if="matrixActive"
+      ref="matrixCanvas"
+      class="absolute inset-0 z-10 pointer-events-none"
+    ></canvas>
+
     <!-- Banner on first load -->
     <div v-if="lines.length === 0 && !initialBannerShown" class="mb-8 mt-4">
       <pre class="text-[var(--rp-rose)] leading-tight text-xs sm:text-sm md:text-base"
@@ -50,7 +57,7 @@
     </div>
 
     <!-- Input line -->
-    <div v-if="!loading" class="flex items-start">
+    <div v-if="!loading" class="flex items-start relative">
       <span class="flex-shrink-0" style="color: var(--rp-iris)">❯&nbsp;</span>
       <div class="flex-1 relative">
         <input
@@ -63,6 +70,27 @@
           autocapitalize="off"
           @keydown="handleKeydown"
         />
+        <!-- Tab completion suggestions -->
+        <div
+          v-if="showSuggestions && suggestions.length"
+          class="absolute left-0 mt-1 z-20 rounded border"
+          :style="{
+            background: 'var(--rp-surface)',
+            borderColor: 'var(--rp-overlay)',
+            minWidth: '200px'
+          }"
+        >
+          <div
+            v-for="(s, idx) in suggestions"
+            :key="s"
+            class="px-3 py-1 cursor-pointer font-mono text-sm"
+            :class="{ 'bg-[var(--rp-overlay)]': idx === selectedSuggestion }"
+            :style="{ color: idx === selectedSuggestion ? 'var(--rp-text)' : 'var(--rp-subtle)' }"
+            @mousedown.prevent="selectSuggestion(s)"
+          >
+            {{ s }}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -76,6 +104,7 @@ import { ref, onMounted, nextTick } from 'vue'
 
 const hiddenInput = ref(null)
 const bottomRef = ref(null)
+const matrixCanvas = ref(null)
 const inputValue = ref('')
 const lines = ref([])
 const loading = ref(false)
@@ -83,6 +112,15 @@ const initialBannerShown = ref(false)
 const history = ref([])
 const historyIndex = ref(-1)
 const tempInput = ref('')
+const matrixActive = ref(false)
+const matrixTimer = ref(null)
+
+// Tab completion state
+const availableCommands = ref([])
+const showSuggestions = ref(false)
+const suggestions = ref([])
+const selectedSuggestion = ref(0)
+const tabWordStart = ref(0)
 
 function focusInput() {
   hiddenInput.value?.focus()
@@ -91,6 +129,126 @@ function focusInput() {
 function scrollToBottom() {
   nextTick(() => {
     bottomRef.value?.scrollIntoView({ behavior: 'smooth' })
+  })
+}
+
+function doCompletion() {
+  const input = hiddenInput.value
+  if (!input) return
+
+  const pos = input.selectionStart
+  const val = inputValue.value
+  // Find word boundaries around cursor
+  let start = pos
+  while (start > 0 && val[start - 1] !== ' ') start--
+  let end = pos
+  while (end < val.length && val[end] !== ' ') end++
+
+  const partial = val.slice(start, end).toLowerCase()
+  const matches = availableCommands.value.filter(c => c.startsWith(partial))
+
+  if (matches.length === 0) {
+    showSuggestions.value = false
+    return
+  }
+
+  if (matches.length === 1) {
+    // Single match: autocomplete
+    const before = val.slice(0, start)
+    const after = val.slice(end)
+    inputValue.value = before + matches[0] + after
+    showSuggestions.value = false
+    // ponytail: setTimeout for cursor position after Vue reactivity
+    nextTick(() => {
+      input.setSelectionRange(start + matches[0].length, start + matches[0].length)
+    })
+    return
+  }
+
+  // Multiple matches: show suggestions, cycle on repeated Tab
+  if (showSuggestions.value && suggestions.value.length === matches.length) {
+    selectedSuggestion.value = (selectedSuggestion.value + 1) % matches.length
+    return
+  }
+
+  suggestions.value = matches
+  selectedSuggestion.value = 0
+  tabWordStart.value = start
+  showSuggestions.value = true
+}
+
+function selectSuggestion(cmd) {
+  const val = inputValue.value
+  const start = tabWordStart.value
+  const input = hiddenInput.value
+  let end = input ? input.selectionStart : val.length
+  while (end < val.length && val[end] !== ' ') end++
+
+  inputValue.value = val.slice(0, start) + cmd + val.slice(end)
+  showSuggestions.value = false
+  nextTick(() => {
+    if (input) input.setSelectionRange(start + cmd.length, start + cmd.length)
+    focusInput()
+  })
+}
+
+function dismissSuggestions() {
+  showSuggestions.value = false
+}
+
+// Matrix rain animation
+function startMatrixRain() {
+  matrixActive.value = true
+  applyTheme('matrix')
+
+  nextTick(() => {
+    const canvas = matrixCanvas.value
+    if (!canvas) return
+
+    const container = canvas.parentElement
+    canvas.width = container.clientWidth
+    canvas.height = container.clientHeight
+
+    const ctx = canvas.getContext('2d')
+    const chars = '日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const fontSize = 14
+    const columns = Math.floor(canvas.width / fontSize)
+    const drops = new Array(columns).fill(0)
+
+    const draw = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillStyle = '#00ff41'
+      ctx.font = `${fontSize}px monospace`
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)]
+        ctx.fillText(char, i * fontSize, drops[i] * fontSize)
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0
+        }
+        drops[i]++
+      }
+    }
+
+    const interval = setInterval(draw, 40)
+
+    matrixTimer.value = setTimeout(() => {
+      clearInterval(interval)
+      // Fade out by overlaying with base color
+      let opacity = 0
+      const fadeOut = setInterval(() => {
+        opacity += 0.05
+        ctx.fillStyle = `rgba(13, 13, 13, ${opacity})`
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        if (opacity >= 1) {
+          clearInterval(fadeOut)
+          matrixActive.value = false
+          lines.value = []
+        }
+      }, 30)
+    }, 8000)
   })
 }
 
@@ -150,6 +308,9 @@ async function submitCommand(cmd) {
 
     if (data.type === 'clear') {
       lines.value = []
+    } else if (data.type === 'matrix') {
+      lines.value.push({ type: 'output', text: data.output })
+      startMatrixRain()
     } else if (data.type && data.type.startsWith('theme:')) {
       const theme = data.type.split(':')[1]
       applyTheme(theme)
@@ -172,9 +333,41 @@ async function submitCommand(cmd) {
 }
 
 function handleKeydown(e) {
+  // Suggestion navigation
+  if (showSuggestions.value) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      selectedSuggestion.value = (selectedSuggestion.value + 1) % suggestions.value.length
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      selectedSuggestion.value = (selectedSuggestion.value - 1 + suggestions.value.length) % suggestions.value.length
+      return
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      dismissSuggestions()
+      return
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      selectSuggestion(suggestions.value[selectedSuggestion.value])
+      return
+    }
+    dismissSuggestions()
+  }
+
   if (e.key === 'Enter') {
     e.preventDefault()
+    dismissSuggestions()
     submitCommand(inputValue.value)
+    return
+  }
+
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    doCompletion()
     return
   }
 
@@ -253,7 +446,15 @@ if (savedTheme && themes[savedTheme]) {
   applyTheme(savedTheme)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Fetch available commands for tab completion
+  try {
+    const res = await fetch('/api/commands')
+    availableCommands.value = await res.json()
+  } catch {
+    // ponytail: fallback to empty, tab just won't work
+  }
+
   focusInput()
   scrollToBottom()
 })
