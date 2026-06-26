@@ -30,7 +30,7 @@
     <div v-for="(line, i) in lines" :key="i" class="mb-1">
       <!-- User input line -->
       <div v-if="line.type === 'input'" class="flex">
-        <span style="color: var(--rp-iris)">❯ </span>
+        <span style="color: var(--rp-iris)">❯&nbsp;</span>
         <span style="color: var(--rp-text)">{{ line.text }}</span>
       </div>
 
@@ -198,6 +198,7 @@ function dismissSuggestions() {
 
 // Matrix rain animation
 function startMatrixRain() {
+  const prevTheme = localStorage.getItem('theme') || 'rose-pine'
   matrixActive.value = true
   applyTheme('matrix')
 
@@ -206,18 +207,22 @@ function startMatrixRain() {
     if (!canvas) return
 
     const container = canvas.parentElement
-    canvas.width = container.clientWidth
-    canvas.height = container.clientHeight
+    const dpr = window.devicePixelRatio || 1
+    canvas.width = container.clientWidth * dpr
+    canvas.height = container.clientHeight * dpr
+    canvas.style.width = container.clientWidth + 'px'
+    canvas.style.height = container.clientHeight + 'px'
 
     const ctx = canvas.getContext('2d')
+    ctx.scale(dpr, dpr)
     const chars = '日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     const fontSize = 14
-    const columns = Math.floor(canvas.width / fontSize)
+    const columns = Math.floor(container.clientWidth / fontSize)
     const drops = new Array(columns).fill(0)
 
     const draw = () => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillRect(0, 0, container.clientWidth, container.clientHeight)
       ctx.fillStyle = '#00ff41'
       ctx.font = `${fontSize}px monospace`
 
@@ -225,7 +230,7 @@ function startMatrixRain() {
         const char = chars[Math.floor(Math.random() * chars.length)]
         ctx.fillText(char, i * fontSize, drops[i] * fontSize)
 
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+        if (drops[i] * fontSize > container.clientHeight && Math.random() > 0.975) {
           drops[i] = 0
         }
         drops[i]++
@@ -236,16 +241,16 @@ function startMatrixRain() {
 
     matrixTimer.value = setTimeout(() => {
       clearInterval(interval)
-      // Fade out by overlaying with base color
       let opacity = 0
       const fadeOut = setInterval(() => {
         opacity += 0.05
-        ctx.fillStyle = `rgba(13, 13, 13, ${opacity})`
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`
+        ctx.fillRect(0, 0, container.clientWidth, container.clientHeight)
         if (opacity >= 1) {
           clearInterval(fadeOut)
-          matrixActive.value = false
+          applyTheme(prevTheme)
           lines.value = []
+          matrixActive.value = false
         }
       }, 30)
     }, 8000)
